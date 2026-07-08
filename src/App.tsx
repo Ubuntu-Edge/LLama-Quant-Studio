@@ -1,14 +1,22 @@
 import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
+import { useLlamaCppPath } from "./hooks/useLlamaCppPath";
 import "./App.css";
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
 
+  const {
+    path,
+    isLoading,
+    error,
+    selectDirectory,
+    clearPath,
+  } = useLlamaCppPath();
+
   async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
     setGreetMsg(await invoke("greet", { name }));
   }
 
@@ -44,6 +52,24 @@ function App() {
         <button type="submit">Greet</button>
       </form>
       <p>{greetMsg}</p>
+
+      <hr style={{ margin: "2rem 0" }} />
+
+      <h2>llama.cpp Directory</h2>
+
+      {isLoading ? (
+        <p>Loading saved path...</p>
+      ) : path ? (
+        <div>
+          <p>Current path: {path}</p>
+          <button onClick={selectDirectory}>Change Directory</button>
+          <button onClick={clearPath}>Clear</button>
+        </div>
+      ) : (
+        <button onClick={selectDirectory}>Select llama.cpp Directory</button>
+      )}
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </main>
   );
 }
