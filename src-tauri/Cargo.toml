@@ -1,0 +1,10 @@
+[package]
+name = "llama_quant_studio"   #  Fixed! (using underscores)
+version = "0.1.0"
+description = "Llama Quant Studio Core Engine"
+authors = ["Ibrahim Fadhili"]
+edition = "2021"
+
+[dependencies]
+tauri-plugin-dialog = "2.7.1"
+tauri-plugin-store = "2.4.3"
