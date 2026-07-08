@@ -1,9 +1,13 @@
 [package]
-name = "llama_quant_studio"   #  Fixed! (using underscores)
+name = "llama_quant_studio"
 version = "0.1.0"
 description = "Llama Quant Studio Core Engine"
 authors = ["Ibrahim Fadhili"]
 edition = "2021"
+
+[lib]
+name = "llama_quant_studio_lib"
+crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
 tauri = { version = "2.11.5", features = [] }

@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    __app_name_lib::run()
+    llama_quant_studio_lib::run()
 }

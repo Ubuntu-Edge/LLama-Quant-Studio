@@ -6,5 +6,62 @@ body {
   margin: 0;
   background-color: #020617;
   /* slate-950 */
+  color: #f1f5f9;
+  /* slate-100 */
   overflow: hidden;
+}
+
+.container {
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+h1 {
+  color: #f1f5f9;
+}
+
+p {
+  color: #cbd5e1;
+  /* slate-300 */
+}
+
+input {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+}
+
+button {
+  background-color: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #2563eb;
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  transition: filter 0.3s;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 1em #3b82f6);
 }
