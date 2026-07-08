@@ -1,76 +1,78 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
 import { useLlamaCppPath } from "./hooks/useLlamaCppPath";
+import logo from "./assets/logo.jpeg";
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  const {
-    path,
-    isLoading,
-    error,
-    selectDirectory,
-    clearPath,
-  } = useLlamaCppPath();
-
-  async function greet() {
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const { path, isLoading, error, selectDirectory, clearPath } = useLlamaCppPath();
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-
-      <hr style={{ margin: "2rem 0" }} />
-
-      <h2>llama.cpp Directory</h2>
-
-      {isLoading ? (
-        <p>Loading saved path...</p>
-      ) : path ? (
-        <div>
-          <p>Current path: {path}</p>
-          <button onClick={selectDirectory}>Change Directory</button>
-          <button onClick={clearPath}>Clear</button>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <img src={logo} alt="Ubuntu Edge AI" />
+          <div className="sidebar-brand-text">
+            <span className="name">Llama Quant Studio</span>
+            <span className="tag">Edge AI Tooling</span>
+          </div>
         </div>
-      ) : (
-        <button onClick={selectDirectory}>Select llama.cpp Directory</button>
-      )}
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
-    </main>
+        <nav className="sidebar-nav">
+          <a href="#" className="active">
+            Setup
+          </a>
+          <a href="#">Models</a>
+          <a href="#">Quantize</a>
+          <a href="#">Logs</a>
+        </nav>
+      </aside>
+
+      <main className="main">
+        <div className="eyebrow">Step 1 · Environment</div>
+        <h1>Point us to llama.cpp</h1>
+        <p className="subtitle">
+          Select the working directory where your local llama.cpp build lives.
+          We'll remember it next time you open the app.
+        </p>
+
+        <div className="card">
+          <h2>Working directory</h2>
+          <p className="desc">
+            This should be the root folder containing your compiled llama.cpp
+            binaries.
+          </p>
+
+          {isLoading ? (
+            <div className="empty-state">checking for a saved path...</div>
+          ) : path ? (
+            <div className="path-readout">
+              <span className="label">$</span>
+              {path}
+            </div>
+          ) : (
+            <div className="empty-state">no directory selected yet</div>
+          )}
+
+          <div className="btn-row">
+            {path ? (
+              <>
+                <button className="btn-secondary" onClick={selectDirectory}>
+                  Change directory
+                </button>
+                <button className="btn-secondary" onClick={clearPath}>
+                  Clear
+                </button>
+              </>
+            ) : (
+              <button className="btn-primary" onClick={selectDirectory}>
+                Select directory
+              </button>
+            )}
+          </div>
+
+          {error && <p className="error-text">{error}</p>}
+        </div>
+      </main>
+    </div>
   );
 }
 
