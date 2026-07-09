@@ -17,6 +17,7 @@ tauri-plugin-dialog = "2.7.1"
 tauri-plugin-store = "2.4.3"
 tauri-plugin-fs = "2.5.1"
 tauri-plugin-opener = "2"
+tokio = { version = "1", features = ["process", "io-util", "rt-multi-thread", "macros"] }
 
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
