@@ -74,6 +74,12 @@ struct LogLine {
 }
 
 #[derive(Clone, serde::Serialize)]
+struct QuantLogLine {
+    line: String,
+    percentage: f32,
+}
+
+#[derive(Clone, serde::Serialize)]
 struct JobDone {
     success: bool,
     message: String,
@@ -119,7 +125,8 @@ async fn convert_hf_to_gguf(
     let output_path = output_dir.join(format!("{}-f16.gguf", model_name));
     let output_path_str = output_path.to_string_lossy().to_string();
 
-    let mut child = TokioCommand::new("python3")
+    // Switched to "python" to match common Windows environment defaults cleanly
+    let mut child = TokioCommand::new("python")
         .arg(&script_path)
         .arg(&hf_repo_path)
         .arg("--outfile")
@@ -187,6 +194,95 @@ async fn convert_hf_to_gguf(
     Ok(())
 }
 
+/// Quantizes an f16 .gguf file into a target optimized format by shelling out
+/// to llama-quantize.exe inside the configured llama.cpp directory. 
+/// Parses token metrics on-the-fly to emit real-time progress percentages.
+#[tauri::command]
+async fn quantize_matrix(
+    app: AppHandle,
+    input_f16_path: String,
+    model_name: String,
+    quant_type: String,
+) -> Result<(), String> {
+    let llama_cpp_path = load_llama_cpp_path(app.clone())?
+        .ok_or_else(|| "No llama.cpp directory configured.".to_string())?;
+
+    // Append .exe cleanly since the environment is running on a Windows host
+    let executable_name = if cfg!(windows) { "llama-quantize.exe" } else { "llama-quantize" };
+    let exec_path = PathBuf::from(&llama_cpp_path).join(executable_name);
+
+    if !exec_path.exists() {
+        return Err(format!("Quantization engine binary not found at {}", exec_path.display()));
+    }
+
+    let output_dir = get_output_dir(&app)?;
+    let output_path = output_dir.join(format!("{}-{}.gguf", model_name, quant_type.to_lowercase()));
+    let output_path_str = output_path.to_string_lossy().to_string();
+
+    let mut child = TokioCommand::new(&exec_path)
+        .arg(&input_f16_path)
+        .arg(&output_path_str)
+        .arg(&quant_type)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to initiate quantization engine: {}", e))?;
+
+    let stderr = child.stderr.take().expect("stderr was piped");
+    let app_stream = app.clone();
+
+    // Asynchronous token parsing loop
+    tauri::async_runtime::spawn(async move {
+        let mut reader = BufReader::new(stderr).lines();
+        while let Ok(Some(line)) = reader.next_line().await {
+            let mut progress_pct = 0.0;
+
+            // Token Parsing Engine: Scan line content for structural patterns like '[  12/ 300]'
+            if line.contains('[') && line.contains('/') && line.contains(']') {
+                if let (Some(start), Some(end)) = (line.find('['), line.find(']')) {
+                    let inside_brackets = &line[start + 1..end];
+                    let split_metrics: Vec<&str> = inside_brackets.split('/').collect();
+                    if split_metrics.len() == 2 {
+                        let current_token = split_metrics[0].trim().parse::<f32>().unwrap_or(0.0);
+                        let total_tokens = split_metrics[1].trim().parse::<f32>().unwrap_or(0.0);
+                        if total_tokens > 0.0 {
+                            progress_pct = (current_token / total_tokens) * 100.0;
+                        }
+                    }
+                }
+            }
+
+            let _ = app_stream.emit(
+                "quantization://log",
+                QuantLogLine {
+                    line,
+                    percentage: progress_pct,
+                },
+            );
+        }
+    });
+
+    // Completion listener task thread
+    tauri::async_runtime::spawn(async move {
+        let status = child.wait().await;
+        let final_report = match status {
+            Ok(s) if s.success() => JobDone {
+                success: true,
+                message: "Quantization structural pass complete!".into(),
+                output_path: Some(output_path_str),
+            },
+            _ => JobDone {
+                success: false,
+                message: "Quantization engine processing aborted on non-zero exit code.".into(),
+                output_path: None,
+            },
+        };
+        let _ = app.emit("quantization://done", final_report);
+    });
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -200,7 +296,8 @@ pub fn run() {
             load_llama_cpp_path,
             clear_llama_cpp_path,
             inspect_dropped_path,
-            convert_hf_to_gguf
+            convert_hf_to_gguf,
+            quantize_matrix // Registered Stage 2 handler
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
